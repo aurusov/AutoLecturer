@@ -42,8 +42,7 @@
     document.getElementById('log').appendChild(elem);
 
     if (autoScroll)
-      //document.getElementById('log').scrollTop = Number.MAX_SAFE_INTEGER;
-      document.getElementById('log').scrollTop = 90000000000;
+      document.getElementById('log').scrollTop = 900000000;
   }
 
   function clearLog(){
@@ -119,7 +118,7 @@
 </head>
 
 <body style="display: flex; flex-direction: column; width: 100%; margin: 0;">
-  <div style="display: flex; flex-direction: row; padding: 10px 0; justify-content: center; font-size: 10px;">
+  <div style="display: flex; flex-direction: row; padding: 10px 0; justify-content: center; font-size: 10px; height: 35px;">
     <button id="rec" style="width: 30px; margin-right: 10px; color: red; font-size: 19px; cursor: pointer;" onclick="startRec()">●</button>
     <button id="pause" disabled style="width: 30px; margin-right: 10px; cursor: pointer;" onclick="pauseRec()"><span style="transform: rotate(90deg); font-size: 18px; display: block; font-weight: bold">=</span></button>
     <button id="stop" disabled style="width: 30px; margin-right: 10px; padding-bottom: 10px; cursor: pointer;" onclick="stopRec()">▄</button>
@@ -127,6 +126,6 @@
     <label style="cursor: pointer; padding-top: 5px;"><input type="checkbox" onclick="toogleSilenceFilter()" checked>Silence filter</label>
     <label style="cursor: pointer; padding-top: 5px;"><input type="checkbox" onclick="toogleAutoScroll()" checked>Auto-scroll</label>
   </div>
-  <div id="log" style="display: flex; flex-direction: column; border-top: 1px solid black;  height: calc(100% - 51px); overflow-x: hidden; overflow-y: auto;">
+  <div id="log" style="display: flex; flex-direction: column; border-top: 1px solid black;  height: calc(100vh - 56px); overflow-x: hidden; overflow-y: auto;">
   </div>
 </body>
