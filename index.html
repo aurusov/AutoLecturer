@@ -1,0 +1,132 @@
+<script src="https://webasr.yandex.net/jsapi/v1/webspeechkit.js" type="text/javascript"></script>
+<script type="text/javascript">
+  
+  var tags = {
+    none: 0,
+    done: 1,
+    error: 2,
+    info: 3
+  }
+
+  var silenceFilter = true;
+  var autoScroll = true;
+
+  function getTemplate(time, timeDif, message, tag) {
+    return '<div style="display: flex; flex-direction: row; border-bottom: 1px solid rgba(0,0,0,0.5); padding: 2px 0;">\
+              <div style="width: 165px; flex-shrink: 0; border-right: 1px solid rgba(0,0,0,0.5);">\
+                <span style="display: inline-block; width: 90px;">' + time + '</span>\
+                <small style="opacity: 0.7">(+' + timeDif + 'ms)</small>\
+              </div>\
+              <div style="width: 100%; padding-left: 20px;">'
+                + (tag === tags.done ? '<div style="display: inline-block; margin-right: 10px; background-color: dodgerblue; color: white; border-radius: 2px; width: 60px; text-align: center;"> Done </div>' : '')
+                + (tag === tags.error ? '<div style="display: inline-block; margin-right: 10px; background-color: darkred; color: white; border-radius: 2px; width: 60px; text-align: center;"> Error </div>' : '')
+                + (tag === tags.info ? '<div style="display: inline-block; margin-right: 10px; background-color: limegreen; color: white; border-radius: 2px; width: 60px; text-align: center;"> Info </div>' : '')
+                + '<span>' + message + '</span>\
+              </div>\
+            </div>'
+  }
+
+  var lastMessageTime = null;
+  function addMessage(message, tag){
+    if (!lastMessageTime)
+      lastMessageTime = new Date();
+
+    var now = new Date();
+    var time = now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + '.' + now.getMilliseconds();
+    var diff = now.getTime() - lastMessageTime.getTime();
+    lastMessageTime = now;
+
+    var tmplt = getTemplate(time, diff, message, tag);
+    var elem = document.createElement('div');
+    elem.innerHTML = tmplt;
+    document.getElementById('log').appendChild(elem);
+
+    if (autoScroll)
+      //document.getElementById('log').scrollTop = Number.MAX_SAFE_INTEGER;
+      document.getElementById('log').scrollTop = 90000000000;
+  }
+
+  function clearLog(){
+    document.getElementById('log').innerHTML = '';
+    lastMessageTime = null;
+  }
+
+  window.onload = function(){
+    ya.speechkit.settings.apikey = 'efe49eed-0ce0-4482-8c14-0cf141204bd9';
+    var streamer = new ya.speechkit.SpeechRecognition();
+    var params = {
+      initCallback: function () {
+        addMessage('Запись началась', tags.info);
+      },
+      dataCallback: function (text, done, merge, words) {
+        if (done || !silenceFilter || !!text)
+          addMessage(text, done ? tags.done : tags.none);
+      },
+      errorCallback: function (err) {
+        addMessage('Ошибка: ' + JSON.stringify(err), tags.error);
+      },
+      /*infoCallback: function (sent_bytes, sent_packages, processed, format) {
+          console.log("Отправлено данных на сервер: " + JSON.stringify(sent_bytes));
+          console.log("Отправлено пакетов на сервер: " + sent_packages);
+          console.log("Количество пакетов, которые обработал сервер: " + processed);
+          console.log("До какой частоты понижена частота дискретизации звука: " + format);
+      },*/
+      stopCallback: function () {
+        addMessage('Запись остановлена', tags.info);
+      },
+      punctuation: true,
+      particialResults: true,
+      utteranceSilence: 60    
+    }
+
+    function startRec(){ 
+      streamer.start(params) 
+      document.getElementById('rec').setAttribute('disabled', true);
+      document.getElementById('rec').style.color = 'graytext';
+      document.getElementById('stop').removeAttribute('disabled');
+      document.getElementById('pause').removeAttribute('disabled');
+    };
+    function stopRec(){ 
+      streamer.stop(); 
+      document.getElementById('rec').removeAttribute('disabled');
+      document.getElementById('rec').style.color = 'red';
+      document.getElementById('stop').setAttribute('disabled', true);
+      document.getElementById('pause').setAttribute('disabled', true);
+    };
+    function pauseRec(){
+      streamer.pause();
+      document.getElementById('rec').removeAttribute('disabled');
+      document.getElementById('rec').style.color = 'red';
+      document.getElementById('pause').setAttribute('disabled', true);
+      document.getElementById('stop').removeAttribute('disabled');
+    }
+    function toogleSilenceFilter() { silenceFilter = !silenceFilter; };
+    function toogleAutoScroll() { autoScroll = !autoScroll; };
+
+    window.startRec = startRec;
+    window.stopRec = stopRec;
+    window.pauseRec = pauseRec;
+    window.toogleSilenceFilter = toogleSilenceFilter;
+    window.toogleAutoScroll = toogleAutoScroll;
+  };
+</script>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=1" charset="utf-8"/>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>SpeechLog</title>
+</head>
+
+<body style="display: flex; flex-direction: column; width: 100%; margin: 0;">
+  <div style="display: flex; flex-direction: row; padding: 10px 0; justify-content: center; font-size: 10px;">
+    <button id="rec" style="width: 30px; margin-right: 10px; color: red; font-size: 19px; cursor: pointer;" onclick="startRec()">●</button>
+    <button id="pause" disabled style="width: 30px; margin-right: 10px; cursor: pointer;" onclick="pauseRec()"><span style="transform: rotate(90deg); font-size: 18px; display: block; font-weight: bold">=</span></button>
+    <button id="stop" disabled style="width: 30px; margin-right: 10px; padding-bottom: 10px; cursor: pointer;" onclick="stopRec()">▄</button>
+    <button style="width: 50px; margin-left: 20px; cursor: pointer;" onclick="clearLog()">Clear</button>
+    <label style="cursor: pointer; padding-top: 5px;"><input type="checkbox" onclick="toogleSilenceFilter()" checked>Silence filter</label>
+    <label style="cursor: pointer; padding-top: 5px;"><input type="checkbox" onclick="toogleAutoScroll()" checked>Auto-scroll</label>
+  </div>
+  <div id="log" style="display: flex; flex-direction: column; border-top: 1px solid black;  height: calc(100% - 51px); overflow-x: hidden; overflow-y: auto;">
+  </div>
+</body>
