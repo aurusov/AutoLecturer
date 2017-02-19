@@ -1,5 +1,6 @@
+<script src="https://webasr.yandex.net/jsapi/v1/webspeechkit.js" type="text/javascript"></script>
 <script type="text/javascript">
-
+  
   var tags = {
     none: 0,
     done: 1,
@@ -7,6 +8,7 @@
     info: 3
   }
 
+  var silenceFilter = true;
   var autoScroll = true;
 
   function getTemplate(time, timeDif, message, tag) {
@@ -49,86 +51,61 @@
   }
 
   window.onload = function(){
-
-    var SpeechRecognizer = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognizer){
-      alert('Recognition is anavailable in this browser!');
-      document.getElementById('rec').setAttribute('disabled', true);
-      document.getElementById('rec').style.color = 'graytext';
-      document.getElementById('stop').setAttribute('disabled', true);
-      return;
-    }
-
-    var recognizer = new SpeechRecognizer();
-
-    recognizer.interimResults = true;
-    recognizer.continuous = true;
-    recognizer.lang = "ru-RU";
-
-    recognizer.onaudioend = function(arg) {
-      addMessage('Audio end', tags.info);
-    }
-
-    recognizer.onaudiostart = function(arg) {
-      addMessage('Audio start', tags.info);
-    }
-
-    recognizer.onend = function(arg) {
-      addMessage('End', tags.info);
-    }
-
-    recognizer.onerror = function(arg) {
-      addMessage('(' + arg.error + ') ' + arg.message, tags.error);
-    }
-
-    recognizer.onnomatch = function(arg) {
-      addMessage('No match', tags.error);
-    }
-
-    recognizer.onresult = function(resultResponse) {
-      var index = resultResponse.resultIndex;
-      var res = resultResponse.results[index];
-      addMessage(res[0].transcript, res.isFinal ? tags.done : tags.none);
-    }
-
-    recognizer.onsoundend = function(arg) {
-      addMessage('Sound end', tags.info);
-    }
-
-    recognizer.onsoundstart = function(arg) {
-      addMessage('Sound start', tags.info);
-    }
-
-    recognizer.onspeechend = function(arg) {
-      addMessage('Speech end', tags.info);
-    }
-
-    recognizer.onspeechstart = function(arg) {
-      addMessage('Speech start', tags.info);
-    }
-
-    recognizer.onstart = function(arg) {
-      addMessage('Start', tags.info);
+    ya.speechkit.settings.apikey = 'efe49eed-0ce0-4482-8c14-0cf141204bd9';
+    var streamer = new ya.speechkit.SpeechRecognition();
+    var params = {
+      initCallback: function () {
+        addMessage('Запись началась', tags.info);
+      },
+      dataCallback: function (text, done, merge, words) {
+        if (done || !silenceFilter || !!text)
+          addMessage(text, done ? tags.done : tags.none);
+      },
+      errorCallback: function (err) {
+        addMessage('Ошибка: ' + JSON.stringify(err), tags.error);
+      },
+      /*infoCallback: function (sent_bytes, sent_packages, processed, format) {
+          console.log("Отправлено данных на сервер: " + JSON.stringify(sent_bytes));
+          console.log("Отправлено пакетов на сервер: " + sent_packages);
+          console.log("Количество пакетов, которые обработал сервер: " + processed);
+          console.log("До какой частоты понижена частота дискретизации звука: " + format);
+      },*/
+      stopCallback: function () {
+        addMessage('Запись остановлена', tags.info);
+      },
+      punctuation: true,
+      particialResults: true,
+      utteranceSilence: 60    
     }
 
     function startRec(){ 
-      recognizer.start() 
+      streamer.start(params) 
       document.getElementById('rec').setAttribute('disabled', true);
       document.getElementById('rec').style.color = 'graytext';
       document.getElementById('stop').removeAttribute('disabled');
+      document.getElementById('pause').removeAttribute('disabled');
     };
     function stopRec(){ 
-      recognizer.stop(); 
+      streamer.stop(); 
       document.getElementById('rec').removeAttribute('disabled');
       document.getElementById('rec').style.color = 'red';
       document.getElementById('stop').setAttribute('disabled', true);
+      document.getElementById('pause').setAttribute('disabled', true);
     };
-
+    function pauseRec(){
+      streamer.pause();
+      document.getElementById('rec').removeAttribute('disabled');
+      document.getElementById('rec').style.color = 'red';
+      document.getElementById('pause').setAttribute('disabled', true);
+      document.getElementById('stop').removeAttribute('disabled');
+    }
     function toogleSilenceFilter() { silenceFilter = !silenceFilter; };
     function toogleAutoScroll() { autoScroll = !autoScroll; };
 
     window.startRec = startRec;
     window.stopRec = stopRec;
+    window.pauseRec = pauseRec;
+    window.toogleSilenceFilter = toogleSilenceFilter;
     window.toogleAutoScroll = toogleAutoScroll;
   };
 </script>
@@ -143,8 +120,10 @@
 <body style="display: flex; flex-direction: column; width: 100%; margin: 0;">
   <div style="display: flex; flex-direction: row; padding: 10px 0; justify-content: center; font-size: 10px; height: 35px;">
     <button id="rec" style="width: 30px; margin-right: 10px; color: red; font-size: 19px; cursor: pointer;" onclick="startRec()">●</button>
+    <button id="pause" disabled style="width: 30px; margin-right: 10px; cursor: pointer;" onclick="pauseRec()"><span style="transform: rotate(90deg); font-size: 18px; display: block; font-weight: bold">=</span></button>
     <button id="stop" disabled style="width: 30px; margin-right: 10px; padding-bottom: 10px; cursor: pointer;" onclick="stopRec()">▄</button>
     <button style="width: 50px; margin-left: 20px; cursor: pointer;" onclick="clearLog()">Clear</button>
+    <label style="cursor: pointer; padding-top: 5px;"><input type="checkbox" onclick="toogleSilenceFilter()" checked>Silence filter</label>
     <label style="cursor: pointer; padding-top: 5px;"><input type="checkbox" onclick="toogleAutoScroll()" checked>Auto-scroll</label>
   </div>
   <div id="log" style="display: flex; flex-direction: column; border-top: 1px solid black;  height: calc(100vh - 56px); overflow-x: hidden; overflow-y: auto;">
